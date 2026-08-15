@@ -1,4 +1,4 @@
-module github.com/gmcabrita/go-sync-map-copy-analyzer
+module github.com/gmcabrita/syncmapcopy
 
 go 1.25.0
 

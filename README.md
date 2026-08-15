@@ -1,4 +1,4 @@
-# go-sync-map-copy-analyzer
+# syncmapcopy
 
 A focused [`go/analysis`](https://pkg.go.dev/golang.org/x/tools/go/analysis) analyzer for the documented `sync.Map` rule:
 
@@ -24,13 +24,13 @@ Unknown state is conservative: the analyzer reports only definite copy-after-use
 ## Run in another project
 
 ```sh
-go run github.com/gmcabrita/go-sync-map-copy-analyzer/cmd/syncmapcopy@latest ./...
+go run github.com/gmcabrita/syncmapcopy/cmd/syncmapcopy@latest ./...
 ```
 
 Or install it:
 
 ```sh
-go install github.com/gmcabrita/go-sync-map-copy-analyzer/cmd/syncmapcopy@latest
+go install github.com/gmcabrita/syncmapcopy/cmd/syncmapcopy@latest
 syncmapcopy ./...
 ```
 
@@ -42,7 +42,7 @@ Arguments are standard Go package patterns.
 package main
 
 import (
-	syncmapcopy "github.com/gmcabrita/go-sync-map-copy-analyzer"
+	syncmapcopy "github.com/gmcabrita/syncmapcopy"
 	"golang.org/x/tools/go/analysis/multichecker"
 )
 

@@ -2,7 +2,7 @@
 package main
 
 import (
-	syncmapcopy "github.com/gmcabrita/go-sync-map-copy-analyzer"
+	syncmapcopy "github.com/gmcabrita/syncmapcopy"
 	"golang.org/x/tools/go/analysis/singlechecker"
 )
 
