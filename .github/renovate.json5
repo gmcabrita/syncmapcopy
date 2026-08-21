@@ -4,6 +4,7 @@
     "config:recommended",
     "helpers:pinGitHubActionDigests",
   ],
+  "reviewers": ["gmcabrita"],
   "postUpdateOptions": ["gomodTidy"],
   "customManagers": [
     {
