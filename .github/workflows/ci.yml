@@ -13,10 +13,12 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  check:
-    name: Check
+  test-minimum:
+    name: Test minimum Go version
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
+    env:
+      GOTOOLCHAIN: local
 
     steps:
       - name: Check out repository
@@ -24,10 +26,47 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Go
+      - name: Read minimum Go version
+        id: go-version
+        run: |
+          version="$(awk '$1 == "go" { print $2; exit }' go.mod)"
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Set up minimum supported Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: go.mod
+          go-version: ${{ steps.go-version.outputs.version }}
+          cache: true
+
+      - name: Run tests
+        run: go test ./...
+
+  check:
+    name: Check current Go version
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GOTOOLCHAIN: local
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read current Go version
+        id: go-version
+        run: |
+          version="$(awk '$1 == "toolchain" { print $2; exit }' go.mod)"
+          version="${version#go}"
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Set up current Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ steps.go-version.outputs.version }}
           cache: true
 
       - name: Set up mise
