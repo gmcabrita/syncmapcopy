@@ -29,7 +29,7 @@ run = [
 
 [tasks.test]
 description = "Run tests"
-run = "go test ./..."
+run = "go test -race ./..."
 
 [tasks.build]
 description = "Build packages"

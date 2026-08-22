@@ -10,40 +10,11 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  test-minimum:
-    name: Test minimum Go version
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    env:
-      GOTOOLCHAIN: local
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Read minimum Go version
-        id: go-version
-        run: |
-          version="$(awk '$1 == "go" { print $2; exit }' go.mod)"
-          test -n "$version"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
-      - name: Set up minimum supported Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version: ${{ steps.go-version.outputs.version }}
-          cache: true
-
-      - name: Run tests
-        run: go test ./...
-
   check:
-    name: Check current Go version
+    name: Current Go toolchain checks
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -56,21 +27,75 @@ jobs:
           persist-credentials: false
 
       - name: Read current Go version
-        id: go-version
+        id: current-go
         run: |
-          version="$(awk '$1 == "toolchain" { print $2; exit }' go.mod)"
-          version="${version#go}"
+          version=$(awk '$1 == "toolchain" { sub(/^go/, "", $2); print $2; exit }' go.mod)
+          if [[ -z "$version" ]]; then
+            version=$(awk '$1 == "go" { print $2; exit }' go.mod)
+          fi
           test -n "$version"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
 
       - name: Set up current Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: ${{ steps.go-version.outputs.version }}
+          go-version: ${{ steps.current-go.outputs.version }}
           cache: true
 
       - name: Set up mise
         uses: jdx/mise-action@3c2e0cf82a5b2e5249f0d3635a4d83d0ae861518 # v4.2.5
 
+      - name: Verify current Go version
+        env:
+          EXPECTED_GO_VERSION: ${{ steps.current-go.outputs.version }}
+        run: test "$(go env GOVERSION)" = "go$EXPECTED_GO_VERSION"
+
+      - name: Verify dependencies
+        run: |
+          go mod download
+          go mod verify
+          go mod tidy -diff
+
       - name: Run checks
         run: mise run check
+
+      - name: Verify clean working tree
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git status --short
+            exit 1
+          fi
+
+  minimum-go:
+    name: Minimum Go compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GOTOOLCHAIN: local
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read minimum Go version
+        id: minimum-go
+        run: |
+          version=$(awk '$1 == "go" { print $2; exit }' go.mod)
+          test -n "$version"
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
+
+      - name: Set up minimum Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ steps.minimum-go.outputs.version }}
+          cache: true
+
+      - name: Verify minimum Go version
+        env:
+          EXPECTED_GO_VERSION: ${{ steps.minimum-go.outputs.version }}
+        run: test "$(go env GOVERSION)" = "go$EXPECTED_GO_VERSION"
+
+      - name: Run tests
+        run: go test -race ./...
